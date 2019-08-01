@@ -76,6 +76,22 @@ var windows = map[string]builtinDefinition{
 			"Calculates the relative rank of the current row: "+
 				"(number of rows preceding or peer with current row) / (total rows)."),
 	),
+
+	/* wcharczuk start */
+	"mode": makeBuiltin(winProps(),
+		makeWindowOverload(tree.ArgTypes{}, types.Float, newModeWindow,
+			"Returns the most frequent input value (arbitrarily choosing the first one if there are multiple equally-frequent results)."),
+	),
+	"percentile_cont": makeBuiltin(winProps(),
+		makeWindowOverload(tree.ArgTypes{{"n", types.Float}}, types.Float, newPercentileContinuousWindow,
+			"Continuous percentile: returns a value corresponding to the specified fraction in the ordering, interpolating between adjacent input items if needed."),
+	),
+	"percentile_disc": makeBuiltin(winProps(),
+		makeWindowOverload(tree.ArgTypes{{"n", types.Float}}, types.Float, newPercentileDiscreteWindow,
+			"Discrete percentile: returns the first input value whose position in the ordering equals or exceeds the specified fraction."),
+	),
+	/* wcharczuk end */
+
 	"ntile": makeBuiltin(winProps(),
 		makeWindowOverload(tree.ArgTypes{{"n", types.Int}}, types.Int, newNtileWindow,
 			"Calculates an integer ranging from 1 to `n`, dividing the partition as equally as possible."),
@@ -145,6 +161,10 @@ var windows = map[string]builtinDefinition{
 				"Returns `val` evaluated at the row that is the `n`th row of the window frame (counting from 1); "+
 					"null if no such row.")
 		}),
+	"percentile": makeBuiltin(winProps(),
+		makeWindowOverload(tree.ArgTypes{}, types.Scalar, newPercentileWindow,
+			"WCTODO: DOES PERCENTILE THINGS"),
+	),
 }
 
 func makeWindowOverload(
