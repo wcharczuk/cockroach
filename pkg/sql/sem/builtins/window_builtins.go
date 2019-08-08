@@ -754,7 +754,9 @@ func (nthValueWindow) Reset(context.Context) {}
 func (nthValueWindow) Close(context.Context, *tree.EvalContext) {}
 
 // percentileDiscreteWindow // WCTODO
-type percentileDiscreteWindow struct{}
+type percentileDiscreteWindow struct {
+	result *tree.DFloat
+}
 
 func newPercentileDiscreteWindow([]*types.T, *tree.EvalContext) tree.WindowFunc {
 	return &percentileDiscreteWindow{}
@@ -765,72 +767,80 @@ var errInvalidArgumentForPercentileDiscreteValue = pgerror.Newf(
 	"argument of percentile_disc() must be greater than zero and less than 1.0",
 )
 
-func (percentileDiscreteWindow) Compute(
+func (p percentileDiscreteWindow) Compute(
 	ctx context.Context, evalCtx *tree.EvalContext, wfr *tree.WindowFrameRun,
 ) (tree.Datum, error) {
-	args, err := wfr.Args(ctx)
-	if err != nil {
-		return nil, err
-	}
+	if wfr.FirstInPeerGroup() {
+		args, err := wfr.Args(ctx)
+		if err != nil {
+			return nil, err
+		}
 
-	percentArg := args[1]
-	if percentArg == tree.DNull {
-		return tree.DNull, nil
-	}
+		percentArg := args[1]
+		if percentArg == tree.DNull {
+			return tree.DNull, nil
+		}
 
-	percent := float64(tree.MustBeDFloat(percentArg))
-	if percent <= 0 || percent >= 1.0 {
-		return nil, errInvalidArgumentForPercentileDiscreteValue
-	}
+		percent := float64(tree.MustBeDFloat(percentArg))
+		if percent <= 0 || percent >= 1.0 {
+			return nil, errInvalidArgumentForPercentileDiscreteValue
+		}
 
-	// gather the frame size and the start index in the result set.
-	frameSize, err := wfr.FrameSize(ctx, evalCtx)
-	if err != nil {
-		return nil, err
-	}
-	frameStartIdx, err := wfr.FrameStartIdx(ctx, evalCtx)
-	if err != nil {
-		return nil, err
-	}
+		// gather the frame size and the start index in the result set.
+		frameSize, err := wfr.FrameSize(ctx, evalCtx)
+		if err != nil {
+			return nil, err
+		}
+		frameStartIdx, err := wfr.FrameStartIdx(ctx, evalCtx)
+		if err != nil {
+			return nil, err
+		}
 
-	arrayIndex := percent * float64(frameSize)
-	var percentile float64
-	arrayIndexInt := int(math.RoundToEven(arrayIndex))
-	arrayIndexInt = arrayIndexInt + frameStartIdx
-	if arrayIndex == float64(int64(arrayIndexInt)) {
-		row0, err := wfr.Rows.GetRow(ctx, arrayIndexInt-1)
-		if err != nil {
-			return nil, err
+		arrayIndex := percent * float64(frameSize)
+		var percentile float64
+		arrayIndexInt := int(math.RoundToEven(arrayIndex))
+		arrayIndexInt = arrayIndexInt + frameStartIdx
+		if arrayIndex == float64(int64(arrayIndexInt)) {
+			row0, err := wfr.Rows.GetRow(ctx, arrayIndexInt-1)
+			if err != nil {
+				return nil, err
+			}
+			row1, err := wfr.Rows.GetRow(ctx, arrayIndexInt)
+			if err != nil {
+				return nil, err
+			}
+			value0, err := row0.GetDatum(int(wfr.ArgsIdxs[0]))
+			if err != nil {
+				return nil, err
+			}
+			value1, err := row1.GetDatum(int(wfr.ArgsIdxs[0]))
+			if err != nil {
+				return nil, err
+			}
+			percentile = (float64(tree.MustBeDFloat(value0)) + float64(tree.MustBeDFloat(value1))) / 2.0
+		} else {
+			row0, err := wfr.Rows.GetRow(ctx, arrayIndexInt)
+			if err != nil {
+				return nil, err
+			}
+			value0, err := row0.GetDatum(int(wfr.ArgsIdxs[0]))
+			if err != nil {
+				return nil, err
+			}
+			percentile = float64(tree.MustBeDFloat(value0))
 		}
-		row1, err := wfr.Rows.GetRow(ctx, arrayIndexInt)
-		if err != nil {
-			return nil, err
-		}
-		value0, err := row0.GetDatum(int(wfr.ArgsIdxs[0]))
-		if err != nil {
-			return nil, err
-		}
-		value1, err := row1.GetDatum(int(wfr.ArgsIdxs[0]))
-		if err != nil {
-			return nil, err
-		}
-		percentile = (float64(tree.MustBeDFloat(value0)) + float64(tree.MustBeDFloat(value1))) / 2.0
-	} else {
-		row0, err := wfr.Rows.GetRow(ctx, arrayIndexInt)
-		if err != nil {
-			return nil, err
-		}
-		value0, err := row0.GetDatum(int(wfr.ArgsIdxs[0]))
-		if err != nil {
-			return nil, err
-		}
-		percentile = float64(tree.MustBeDFloat(value0))
+		result := tree.DFloat(percentile)
+		p.result = &result
 	}
-	returnVal := tree.DFloat(percentile)
-	return &returnVal, nil
+	if p.result != nil {
+		return p.result, nil
+	}
+	return tree.DNull, nil
 }
 
 // Reset implements tree.WindowFunc interface.
-func (percentileDiscreteWindow) Reset(context.Context) {}
+func (p percentileDiscreteWindow) Reset(context.Context) {
+	p.result = nil
+}
 
 func (percentileDiscreteWindow) Close(context.Context, *tree.EvalContext) {}
