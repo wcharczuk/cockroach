@@ -733,6 +733,30 @@ func (d *DInt) Size() uintptr {
 // DFloat is the float Datum.
 type DFloat float64
 
+// AsDFloat attempts to retrieve a DFloat from an Expr, returning a DFloat and
+// a flag signifying whether the assertion was successful. The function should
+// be used instead of direct type assertions wherever a *DFloat wrapped by a
+// *DOidWrapper is possible.
+func AsDFloat(e Expr) (DFloat, bool) {
+	switch t := e.(type) {
+	case *DFloat:
+		return *t, true
+	case *DInt:
+		return DFloat(MustBeDInt(t)), true
+	}
+	return 0, false
+}
+
+// MustBeDFloat attempts to retrieve a DFloat from an Expr, panicking if the
+// assertion fails.
+func MustBeDFloat(e Expr) DFloat {
+	f, ok := AsDFloat(e)
+	if !ok {
+		panic(errors.AssertionFailedf("expected *DFloat, found %T", e))
+	}
+	return f
+}
+
 // NewDFloat is a helper routine to create a *DFloat initialized from its
 // argument.
 func NewDFloat(d DFloat) *DFloat {

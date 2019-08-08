@@ -3338,3 +3338,8 @@ SELECT *, avg(w) OVER (PARTITION BY w, z ORDER BY y) FROM wxyz ORDER BY z, w, y 
 ----
 2  10  2  0  2
 4  10  2  0  4
+
+query R
+SELECT percentile_disc(priceFloat, 0.95) OVER () FROM products
+----
+230.0

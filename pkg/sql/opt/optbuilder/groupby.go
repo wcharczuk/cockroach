@@ -568,6 +568,8 @@ func (b *Builder) constructWindowFn(name string, args []opt.ScalarExpr) opt.Scal
 		return b.factory.ConstructLastValue(args[0])
 	case "nth_value":
 		return b.factory.ConstructNthValue(args[0], args[1])
+	case "percentile_disc":
+		return b.factory.ConstructPercentileDisc(args[0], args[1])
 	case "string_agg":
 		// We can handle non-constant second arguments for string_agg in window
 		// fns (but not aggregates).

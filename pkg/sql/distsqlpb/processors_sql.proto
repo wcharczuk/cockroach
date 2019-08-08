@@ -577,6 +577,7 @@ message WindowerSpec {
     FIRST_VALUE = 8;
     LAST_VALUE = 9;
     NTH_VALUE = 10;
+    PERCENTILE_DISC = 11;
   }
 
   // Func specifies which function to compute. It can either be built-in

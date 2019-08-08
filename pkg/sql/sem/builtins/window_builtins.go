@@ -13,6 +13,7 @@ package builtins
 import (
 	"context"
 	"fmt"
+	"math"
 
 	"github.com/cockroachdb/cockroach/pkg/sql/pgwire/pgcode"
 	"github.com/cockroachdb/cockroach/pkg/sql/pgwire/pgerror"
@@ -77,25 +78,11 @@ var windows = map[string]builtinDefinition{
 				"(number of rows preceding or peer with current row) / (total rows)."),
 	),
 
-	/* wcharczuk start */
-	"mode": makeBuiltin(winProps(),
-		makeWindowOverload(tree.ArgTypes{}, types.Float, newModeWindow,
-			"Returns the most frequent input value (arbitrarily choosing the first one if there are multiple equally-frequent results)."),
-	),
-	"percentile_cont": makeBuiltin(winProps(),
-		makeWindowOverload(tree.ArgTypes{{"n", types.Float}}, types.Float, newPercentileContinuousWindow,
-			"Continuous percentile: returns a value corresponding to the specified fraction in the ordering, interpolating between adjacent input items if needed."),
-	),
-	"percentile_disc": makeBuiltin(winProps(),
-		makeWindowOverload(tree.ArgTypes{{"n", types.Float}}, types.Float, newPercentileDiscreteWindow,
-			"Discrete percentile: returns the first input value whose position in the ordering equals or exceeds the specified fraction."),
-	),
-	/* wcharczuk end */
-
 	"ntile": makeBuiltin(winProps(),
 		makeWindowOverload(tree.ArgTypes{{"n", types.Int}}, types.Int, newNtileWindow,
 			"Calculates an integer ranging from 1 to `n`, dividing the partition as equally as possible."),
 	),
+
 	"lag": collectOverloads(
 		winProps(),
 		types.Scalar,
@@ -161,10 +148,13 @@ var windows = map[string]builtinDefinition{
 				"Returns `val` evaluated at the row that is the `n`th row of the window frame (counting from 1); "+
 					"null if no such row.")
 		}),
-	"percentile": makeBuiltin(winProps(),
-		makeWindowOverload(tree.ArgTypes{}, types.Scalar, newPercentileWindow,
-			"WCTODO: DOES PERCENTILE THINGS"),
-	),
+
+	"percentile_disc": collectOverloads(winProps(), types.Scalar,
+		func(t *types.T) tree.Overload {
+			return makeWindowOverload(tree.ArgTypes{
+				{"val", t}, {"percentile", types.Float}}, t, newPercentileDiscreteWindow,
+				"Discrete percentile: returns the first input value whose position in the ordering equals or exceeds the specified fraction.")
+		}),
 }
 
 func makeWindowOverload(
@@ -181,18 +171,22 @@ func makeWindowOverload(
 	}
 }
 
-var _ tree.WindowFunc = &aggregateWindowFunc{}
-var _ tree.WindowFunc = &framableAggregateWindowFunc{}
-var _ tree.WindowFunc = &rowNumberWindow{}
-var _ tree.WindowFunc = &rankWindow{}
-var _ tree.WindowFunc = &denseRankWindow{}
-var _ tree.WindowFunc = &percentRankWindow{}
-var _ tree.WindowFunc = &cumulativeDistWindow{}
-var _ tree.WindowFunc = &ntileWindow{}
-var _ tree.WindowFunc = &leadLagWindow{}
-var _ tree.WindowFunc = &firstValueWindow{}
-var _ tree.WindowFunc = &lastValueWindow{}
-var _ tree.WindowFunc = &nthValueWindow{}
+var (
+	_ tree.WindowFunc = (*aggregateWindowFunc)(nil)
+	_ tree.WindowFunc = (*framableAggregateWindowFunc)(nil)
+	_ tree.WindowFunc = (*rowNumberWindow)(nil)
+	_ tree.WindowFunc = (*rankWindow)(nil)
+	_ tree.WindowFunc = (*denseRankWindow)(nil)
+	_ tree.WindowFunc = (*percentRankWindow)(nil)
+	_ tree.WindowFunc = (*cumulativeDistWindow)(nil)
+	_ tree.WindowFunc = (*ntileWindow)(nil)
+	_ tree.WindowFunc = (*leadLagWindow)(nil)
+	_ tree.WindowFunc = (*firstValueWindow)(nil)
+	_ tree.WindowFunc = (*firstValueWindow)(nil)
+	_ tree.WindowFunc = (*lastValueWindow)(nil)
+	_ tree.WindowFunc = (*nthValueWindow)(nil)
+	_ tree.WindowFunc = (*percentileDiscreteWindow)(nil)
+)
 
 const noFilterIdx = -1
 
@@ -758,3 +752,85 @@ func (nthValueWindow) Compute(
 func (nthValueWindow) Reset(context.Context) {}
 
 func (nthValueWindow) Close(context.Context, *tree.EvalContext) {}
+
+// percentileDiscreteWindow // WCTODO
+type percentileDiscreteWindow struct{}
+
+func newPercentileDiscreteWindow([]*types.T, *tree.EvalContext) tree.WindowFunc {
+	return &percentileDiscreteWindow{}
+}
+
+var errInvalidArgumentForPercentileDiscreteValue = pgerror.Newf(
+	pgcode.InvalidParameterValue,
+	"argument of percentile_disc() must be greater than zero and less than 1.0",
+)
+
+func (percentileDiscreteWindow) Compute(
+	ctx context.Context, evalCtx *tree.EvalContext, wfr *tree.WindowFrameRun,
+) (tree.Datum, error) {
+	args, err := wfr.Args(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	percentArg := args[1]
+	if percentArg == tree.DNull {
+		return tree.DNull, nil
+	}
+
+	percent := float64(tree.MustBeDFloat(percentArg))
+	if percent <= 0 || percent >= 1.0 {
+		return nil, errInvalidArgumentForPercentileDiscreteValue
+	}
+
+	// gather the frame size and the start index in the result set.
+	frameSize, err := wfr.FrameSize(ctx, evalCtx)
+	if err != nil {
+		return nil, err
+	}
+	frameStartIdx, err := wfr.FrameStartIdx(ctx, evalCtx)
+	if err != nil {
+		return nil, err
+	}
+
+	arrayIndex := percent * float64(frameSize)
+	var percentile float64
+	arrayIndexInt := int(math.RoundToEven(arrayIndex))
+	arrayIndexInt = arrayIndexInt + frameStartIdx
+	if arrayIndex == float64(int64(arrayIndexInt)) {
+		row0, err := wfr.Rows.GetRow(ctx, arrayIndexInt-1)
+		if err != nil {
+			return nil, err
+		}
+		row1, err := wfr.Rows.GetRow(ctx, arrayIndexInt)
+		if err != nil {
+			return nil, err
+		}
+		value0, err := row0.GetDatum(int(wfr.ArgsIdxs[0]))
+		if err != nil {
+			return nil, err
+		}
+		value1, err := row1.GetDatum(int(wfr.ArgsIdxs[0]))
+		if err != nil {
+			return nil, err
+		}
+		percentile = (float64(tree.MustBeDFloat(value0)) + float64(tree.MustBeDFloat(value1))) / 2.0
+	} else {
+		row0, err := wfr.Rows.GetRow(ctx, arrayIndexInt)
+		if err != nil {
+			return nil, err
+		}
+		value0, err := row0.GetDatum(int(wfr.ArgsIdxs[0]))
+		if err != nil {
+			return nil, err
+		}
+		percentile = float64(tree.MustBeDFloat(value0))
+	}
+	returnVal := tree.DFloat(percentile)
+	return &returnVal, nil
+}
+
+// Reset implements tree.WindowFunc interface.
+func (percentileDiscreteWindow) Reset(context.Context) {}
+
+func (percentileDiscreteWindow) Close(context.Context, *tree.EvalContext) {}

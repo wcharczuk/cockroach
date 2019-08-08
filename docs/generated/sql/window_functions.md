@@ -297,6 +297,38 @@
 </span></td></tr>
 <tr><td><code>percent_rank() &rarr; <a href="float.html">float</a></code></td><td><span class="funcdesc"><p>Calculates the relative rank of the current row: (rank - 1) / (total rows - 1).</p>
 </span></td></tr>
+<tr><td><code>percentile_disc(val: <a href="bool.html">bool</a>, percentile: <a href="float.html">float</a>) &rarr; <a href="bool.html">bool</a></code></td><td><span class="funcdesc"><p>Discrete percentile: returns the first input value whose position in the ordering equals or exceeds the specified fraction.</p>
+</span></td></tr>
+<tr><td><code>percentile_disc(val: <a href="bytes.html">bytes</a>, percentile: <a href="float.html">float</a>) &rarr; <a href="bytes.html">bytes</a></code></td><td><span class="funcdesc"><p>Discrete percentile: returns the first input value whose position in the ordering equals or exceeds the specified fraction.</p>
+</span></td></tr>
+<tr><td><code>percentile_disc(val: <a href="date.html">date</a>, percentile: <a href="float.html">float</a>) &rarr; <a href="date.html">date</a></code></td><td><span class="funcdesc"><p>Discrete percentile: returns the first input value whose position in the ordering equals or exceeds the specified fraction.</p>
+</span></td></tr>
+<tr><td><code>percentile_disc(val: <a href="decimal.html">decimal</a>, percentile: <a href="float.html">float</a>) &rarr; <a href="decimal.html">decimal</a></code></td><td><span class="funcdesc"><p>Discrete percentile: returns the first input value whose position in the ordering equals or exceeds the specified fraction.</p>
+</span></td></tr>
+<tr><td><code>percentile_disc(val: <a href="float.html">float</a>, percentile: <a href="float.html">float</a>) &rarr; <a href="float.html">float</a></code></td><td><span class="funcdesc"><p>Discrete percentile: returns the first input value whose position in the ordering equals or exceeds the specified fraction.</p>
+</span></td></tr>
+<tr><td><code>percentile_disc(val: <a href="inet.html">inet</a>, percentile: <a href="float.html">float</a>) &rarr; <a href="inet.html">inet</a></code></td><td><span class="funcdesc"><p>Discrete percentile: returns the first input value whose position in the ordering equals or exceeds the specified fraction.</p>
+</span></td></tr>
+<tr><td><code>percentile_disc(val: <a href="int.html">int</a>, percentile: <a href="float.html">float</a>) &rarr; <a href="int.html">int</a></code></td><td><span class="funcdesc"><p>Discrete percentile: returns the first input value whose position in the ordering equals or exceeds the specified fraction.</p>
+</span></td></tr>
+<tr><td><code>percentile_disc(val: <a href="interval.html">interval</a>, percentile: <a href="float.html">float</a>) &rarr; <a href="interval.html">interval</a></code></td><td><span class="funcdesc"><p>Discrete percentile: returns the first input value whose position in the ordering equals or exceeds the specified fraction.</p>
+</span></td></tr>
+<tr><td><code>percentile_disc(val: <a href="string.html">string</a>, percentile: <a href="float.html">float</a>) &rarr; <a href="string.html">string</a></code></td><td><span class="funcdesc"><p>Discrete percentile: returns the first input value whose position in the ordering equals or exceeds the specified fraction.</p>
+</span></td></tr>
+<tr><td><code>percentile_disc(val: <a href="time.html">time</a>, percentile: <a href="float.html">float</a>) &rarr; <a href="time.html">time</a></code></td><td><span class="funcdesc"><p>Discrete percentile: returns the first input value whose position in the ordering equals or exceeds the specified fraction.</p>
+</span></td></tr>
+<tr><td><code>percentile_disc(val: <a href="timestamp.html">timestamp</a>, percentile: <a href="float.html">float</a>) &rarr; <a href="timestamp.html">timestamp</a></code></td><td><span class="funcdesc"><p>Discrete percentile: returns the first input value whose position in the ordering equals or exceeds the specified fraction.</p>
+</span></td></tr>
+<tr><td><code>percentile_disc(val: <a href="timestamp.html">timestamptz</a>, percentile: <a href="float.html">float</a>) &rarr; <a href="timestamp.html">timestamptz</a></code></td><td><span class="funcdesc"><p>Discrete percentile: returns the first input value whose position in the ordering equals or exceeds the specified fraction.</p>
+</span></td></tr>
+<tr><td><code>percentile_disc(val: <a href="uuid.html">uuid</a>, percentile: <a href="float.html">float</a>) &rarr; <a href="uuid.html">uuid</a></code></td><td><span class="funcdesc"><p>Discrete percentile: returns the first input value whose position in the ordering equals or exceeds the specified fraction.</p>
+</span></td></tr>
+<tr><td><code>percentile_disc(val: jsonb, percentile: <a href="float.html">float</a>) &rarr; jsonb</code></td><td><span class="funcdesc"><p>Discrete percentile: returns the first input value whose position in the ordering equals or exceeds the specified fraction.</p>
+</span></td></tr>
+<tr><td><code>percentile_disc(val: oid, percentile: <a href="float.html">float</a>) &rarr; oid</code></td><td><span class="funcdesc"><p>Discrete percentile: returns the first input value whose position in the ordering equals or exceeds the specified fraction.</p>
+</span></td></tr>
+<tr><td><code>percentile_disc(val: varbit, percentile: <a href="float.html">float</a>) &rarr; varbit</code></td><td><span class="funcdesc"><p>Discrete percentile: returns the first input value whose position in the ordering equals or exceeds the specified fraction.</p>
+</span></td></tr>
 <tr><td><code>rank() &rarr; <a href="int.html">int</a></code></td><td><span class="funcdesc"><p>Calculates the rank of the current row with gaps; same as row_number of its first peer.</p>
 </span></td></tr>
 <tr><td><code>row_number() &rarr; <a href="int.html">int</a></code></td><td><span class="funcdesc"><p>Calculates the number of the current row within its partition, counting from 1.</p>

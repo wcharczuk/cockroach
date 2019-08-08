@@ -989,6 +989,14 @@ define Ntile {
     NumBuckets ScalarExpr
 }
 
+# PercentileDisc returns a value such that N% of values are below it
+# in a given window.
+[Scalar, Window]
+define PercentileDisc {
+    Input ScalarExpr
+    Percentile ScalarExpr
+}
+
 # Lag returns Value evaluated at the row Offset rows before this one. If no
 # such row exists, returns Def.
 [Scalar, Window]
